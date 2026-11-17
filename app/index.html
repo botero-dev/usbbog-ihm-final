@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pokédex</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+        "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <section v-if="panel === 'catalogo'" class="panel panel--catalogo">
+      <header class="header header--row">
+        <div class="header__texts">
+          <h1 class="header__title">DnD Monsters</h1>
+        </div>
+      </header>
+
+      <main class="content content--grid">
+        <ul class="grid">
+          <li v-for="monster in monsters" :key="monster.index">
+            <button type="button" class="card" @click="showMonster(monster)">
+              <span class="card__sprite">
+                 <img :src="image(monster.index)" :alt="monster.name" width="96" height="96" loading="lazy">
+              </span>
+              <span class="card__number">{{ monster.name }}</span>
+            </button>
+          </li>
+        </ul>
+      </main>
+    </section>
+
+    <section v-else-if="panel === 'detalle'" class="panel panel--detalle">
+      <header class="detail-header">
+        <button type="button" class="btn-back btn-back--floating" aria-label="Volver" @click="volver">‹</button>
+      </header>
+
+        <main class="sheet">
+          <div class="sheet__title">
+            <h2 class="sheet__name">{{ monster.name }}</h2>
+          </div>
+            <img :src="image(monster.index)" :alt="monster.name" width="240" height="240" loading="lazy">
+
+            <div class="facts__row">
+              <div class="fact">
+                <dt class="fact__label">Tamaño</dt>
+                <dd class="fact__value">{{ monster_data.size }}</dd>
+              </div>
+              <div class="fact">
+                <dt class="fact__label">Tipo</dt>
+                <dd class="fact__value">{{ monster_data.type }}</dd>
+              </div>
+            </div>
+            <div class="facts__row">
+              <div class="fact">
+                <dt class="fact__label">Alineacion</dt>
+                <dd class="fact__value">{{ monster_data.alignment }}</dd>
+              </div>
+              <div class="fact">
+                <dt class="fact__label">Velocidad</dt>
+                <dd class="fact__value">{{ monster_data.speed.walk }} ft.</dd>
+              </div>
+            </div>
+          
+            <h3>Stats</h3>
+            <div class="facts__row">
+              <div class="fact">
+                <dt class="fact__label">HP</dt>
+                <dd class="fact__value">{{ monster_data.hit_points }}</dd>
+              </div>
+              <div class="fact">
+                <dt class="fact__label">AC</dt>
+                <dd class="fact__value">{{ monster_data.armor_class[0].value }} ft.</dd>
+              </div>
+              </div>
+              <div class="facts__row">
+            
+                <div class="fact">
+                    <dt class="fact__label">Hit</dt>
+                    <dd class="fact__value">{{ monster_data.hit_dice }}</dd>
+                </div>
+                <div class="fact">
+                    <dt class="fact__label">XP</dt>
+                    <dd class="fact__value">{{ monster_data.xp }} ft.</dd>
+                </div>
+              </div>
+          
+          <section class="stats">
+            <h3>Abilities</h3>
+            <template v-for="ability in monster_data.special_abilities">
+                <h4>{{ability.name}}</h4>
+                <p>{{ability.desc}}</p>
+            </template>
+          </section>
+          
+          <section class="stats">
+            <h3>Actions</h3>
+            <template v-for="actions in monster_data.actions">
+                <h4>{{actions.name}}</h4>
+                <p>{{actions.desc}}</p>
+            </template>
+          </section>   
+       </main>
+    </section>
+  </div>
+
+  <script type="module">
+    import { createApp } from 'vue';
+
+    const API_BASE = 'https://www.dnd5eapi.co/api'
+    const API = `${API_BASE}/2014`;
+
+
+    async function api(path) {
+        return fetch(`${API}/${path}`).then((respuesta) => {
+          if (!respuesta.ok) {
+            return null;
+          }
+          return respuesta.json();
+        });
+    }
+
+    async function cargarCatalogo() {
+        let monsters = api("monsters");        
+    }
+
+    const aplicacion = createApp({
+      data() {
+        return {
+          panel: 'catalogo',
+          catalogoCargando: false,
+          monsters: [],
+          monster: null,
+          monster_data: null,
+        };
+      },
+      computed: {
+        generacionActual() {}
+      },
+      mounted() {
+        this.cargarCatalogo();
+      },
+      methods: {
+        async cargarCatalogo() {
+            this.catalogoCargando = true;
+            this.catalogoError = '';
+            let monsters_data = await api("monsters");
+            
+            this.monsters = monsters_data.results;
+
+            this.monsters = this.monsters.slice(0, 24);
+
+            console.log(this.monsters[0]);
+        },
+        image(index) {
+            return `${API_BASE}/images/monsters/${index}.png`;
+        },
+
+        volver() {
+          this.panel = 'catalogo';
+          this.monster = null;
+          this.monster_data = {};
+        },
+        async showMonster(monster) {
+            this.panel = 'detalle';
+            this.monster = monster;
+            let monster_data = await api(`monsters/${monster.index}`);
+            this.monster_data = monster_data;
+        }
+      }
+    });
+
+    aplicacion.mount('#app');
+  </script>
+</body>
+</html>
